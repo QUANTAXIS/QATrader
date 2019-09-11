@@ -36,12 +36,12 @@ class TradeAccountHandler(QABaseHandler):
             portfoliox = {'pre_balance': 0, 'balance': 0,
                           'close_profit': 0, 'float_profit': 0, 'available': 0}
             for item in pymongo.MongoClient(host=sim_account_mongo_ip, port=sim_account_mongo_port).QAREALTIME.account.find(
-                    {'portfolio': portfolio}, {'_id': 0, 'accounts': 1, 'broker_name': 1, 'strategy': 1, 'status': 1, 'trading_day': 1}):
+                    {'portfolio': portfolio}, {'_id': 0, 'accounts': 1, 'broker_name': 1, 'status': 1, 'trading_day': 1}):
                 _t = item['accounts']
                 res.append(_t)
                 try:
                     _t.update(
-                        {'strategy': item['strategy'], 'status': item['status'], 'broker_name': item['broker_name'], 'trading_day': item['trading_day']})
+                        {'status': item['status'], 'broker_name': item['broker_name'], 'trading_day': item['trading_day']})
                     portfoliox['pre_balance'] += item['accounts']['pre_balance']
                     portfoliox['balance'] += item['accounts']['balance']
                     portfoliox['close_profit'] += item['accounts']['close_profit']
@@ -69,10 +69,10 @@ class TradeAccountHandler(QABaseHandler):
         elif action == 'list_real':
             res = []
             for item in pymongo.MongoClient(host=real_account_mongo_ip, port=real_account_mongo_port).QAREALTIME.account.find(
-                    {}, {'_id': 0, 'accounts': 1, 'broker_name': 1, 'strategy': 1, 'status': 1, 'trading_day': 1}):
+                    {}, {'_id': 0, 'accounts': 1, 'broker_name': 1, 'status': 1, 'trading_day': 1}):
                 _t = item['accounts']
                 _t.update(
-                    {'strategy': item['strategy'], 'status': item['status'], 'broker_name': item['broker_name'], 'trading_day': item['trading_day']})
+                    {'status': item['status'], 'broker_name': item['broker_name'], 'trading_day': item['trading_day']})
                 res.append(_t)
             # print(res)
             self.write({
@@ -169,7 +169,7 @@ class SendOrderHandler(QABaseHandler):
                                                host=simtrade_server_ip, exchange='QAORDER_ROUTER')
 
             self.event[acc][action].append({
-                'reqesttime': xtime,
+                'reqesttime': str(xtime),
                 'account_cookie': acc,
                 'topic': action,
                 'strategy_id': 'test',
@@ -178,7 +178,7 @@ class SendOrderHandler(QABaseHandler):
                 'order_direction': direction,
                 'order_offset': offset,
                 'volume': volume,
-                'order_time': time,
+                'order_time': str(xtime),
                 'exchange_id': exchange_id
             })
             p.pub(json.dumps({
@@ -224,7 +224,7 @@ class SendOrderHandler(QABaseHandler):
             }), routing_key=acc)
             self.event[acc][action].append({
                 'topic': action,
-                'reqesttime': xtime,
+                'reqesttime': str(xtime),
                 'account_cookie': acc,
                 'order_id': orderid
             })

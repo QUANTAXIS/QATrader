@@ -39,7 +39,7 @@ class QA_TRADER(QA_Thread):
 
     def __init__(self, account_cookie, password, wsuri, broker_name='simnow', portfolio='default',
                  trade_host='localhost', trade_port='5672', pub_host='localhost', pub_port='5672', sig=True, ping_gap=1,
-                 bank_password=None, capital_password=None,
+                 bank_password=None, capital_password=None, appid=None,
                  if_restart=True, taskid=None, database=pymongo.MongoClient()):
 
         super().__init__(name='QATRADER_{}'.format(account_cookie))
@@ -70,6 +70,7 @@ class QA_TRADER(QA_Thread):
         self.bank_password = bank_password
         self.capital_password = capital_password
         self.tempPass = ''
+        self.appid = appid
 
         self.sub = consumer.subscriber_routing(host=trade_host, port=trade_port, user=trade_server_user, password=trade_server_password,
                                                exchange=trade_server_order_exchange, routing_key=self.account_cookie)
@@ -88,9 +89,9 @@ class QA_TRADER(QA_Thread):
 
         message = message if isinstance(
             message, dict) else json.loads(str(message))
-        #print(message)
+        print(message)
         message = fix_dict(message)
-        #print(message)
+        print(message)
         self.pub.pub(json.dumps(message), routing_key=self.account_cookie)
         """需要在这里维持实时账户逻辑
 
@@ -199,8 +200,12 @@ class QA_TRADER(QA_Thread):
 
         def _onopen(ws):
             def run():
-                ws.send(login(
-                    name=self.account_cookie, password=self.password, broker=self.broker_name))
+                if self.appid is None:
+                    ws.send(login(
+                        name=self.account_cookie, password=self.password, broker=self.broker_name))
+                else:
+                    ws.send(login(
+                        name=self.account_cookie, password=self.password, broker=self.broker_name, appid=self.appid))
             threading.Thread(target=run, daemon=False).start()
         ws.on_open = _onopen
         return ws
@@ -225,8 +230,6 @@ class QA_TRADER(QA_Thread):
             print(e)
 
     def handle(self, message):
-        #print(message)
-        #print(message['aid'])
         if message['aid'] == "rtn_data":
 
             try:
@@ -259,13 +262,6 @@ class QA_TRADER(QA_Thread):
                     self.message['bankname'] = res['name']
                     self.message['money'] = res['fetch_amount']
 
-                # self.message['positions'] = self.update(
-                #     self.message['positions'], data[account_cookie]['positions'])
-                # self.message['orders'] = self.update(
-                #     self.message['orders'], data[account_cookie]['orders'])
-                # self.message['bank'] = self.update(
-                #     self.message['bank'], data[account_cookie]['bank'])
-
                 try:
                     for tradeid in data[account_cookie]['trades'].keys():
                         if tradeid not in self.message['trades'].keys():
@@ -281,18 +277,6 @@ class QA_TRADER(QA_Thread):
 
                 self.xhistory.insert_one(
                     {'account_cookie': account_cookie, 'accounts': self.message['accounts'], 'updatetime': self.last_update_time})
-                # try:
-                #     temp = {
-                #         "measurement": "QAAccount",
-                #         'time': self.last_update_time,
-                #         "tags": {
-                #             "user_id": self.message['accounts']['user_id']
-                #         },
-                #         'fields': self.message['accounts']
-                #     }
-                #     client.write_points([temp])
-                # except:
-                #     pass
 
             except Exception as e:
                 print(e)
@@ -328,8 +312,9 @@ class QA_TRADER(QA_Thread):
                 # QA.QA_util_log_info(data)
         elif message['aid'] == "qry_settlement_info":
             reportdate = message['trading_day']
-            self.message['settlement'][str(reportdate)] = message['settlement_info']
-            #print(self.message)
+            self.message['settlement'][str(
+                reportdate)] = message['settlement_info']
+            # print(self.message)
             self.update_account()
 
     def settle(self):
@@ -413,7 +398,8 @@ class QA_TRADER(QA_Thread):
                     transfer(z['account_cookie'], z.get('capital_password', self.message['capital_password']),
                              z.get('bankid', self.message['bankid']), z.get('bankpassword', self.message['bank_password']), z['amount'])
                 )
-                self.message['banks'][z.get('bankid', self.message['bankid'])]['fetch_amount'] = -1
+                self.message['banks'][z.get(
+                    'bankid', self.message['bankid'])]['fetch_amount'] = -1
                 self.ws.send(
                     querybank(z['account_cookie'], z.get('capital_password', self.message['capital_password']),
                               z.get('bankid', self.message['bankid']), z.get('bankpassword', self.message['bank_password']))
@@ -422,7 +408,8 @@ class QA_TRADER(QA_Thread):
 
                 # x = list(self.message['banks'].())[0]
                 # x['fetch_amount'] = -1
-                self.message['banks'][z.get('bankid', self.message['bankid'])]['fetch_amount'] = -1
+                self.message['banks'][z.get(
+                    'bankid', self.message['bankid'])]['fetch_amount'] = -1
                 self.ws.send(
                     querybank(z['account_cookie'], z.get('capital_password', self.message['capital_password']),
                               z.get('bankid', self.message['bankid']), z.get('bankpassword', self.message['bank_password']))

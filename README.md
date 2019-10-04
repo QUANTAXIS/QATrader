@@ -1,11 +1,27 @@
 # QATrader
 
 
+_QATrader兼容 [QIFI协议标准](https://github.com/QUANTAXIS/QIFI/blob/master/README.md)_
+
 ![version](https://img.shields.io/pypi/v/QATRADER.svg)
 
 ```
 pip install QATRADER
 ```
+
+QATRADER 会逐步开放多个语言的实现
+
+==>  GO Client
+
+[QATrader_GO](https://github.com/yutiansut/qatrader_go)
+
+==> Rust Client
+
+[QATrader_Rust](https://github.com/yutiansut/qatrader_rust)
+
+
+
+
 
 QATRADER websocket 接入的期货交易/ 并给予HTTP接口方便快速调用业务(可自行封装)
 
